@@ -1,15 +1,22 @@
-from captum.attr._core.integrated_gradients import LayerIntegratedGradients
+"""
+Class for obtaining the gradients used to calculate Layer Integrated Gradients.
+"""
+
+import torch
+from torch import Tensor
+from torch.nn import Module
+from torch.nn.parallel.scatter_gather import scatter
+
+from captum.attr._core.layer.layer_integrated_gradients import LayerIntegratedGradients
 from captum.attr._utils.attribution import GradientAttribution, LayerAttribution
 from captum.attr._utils.common import (
     _extract_device,
     _format_additional_forward_args,
-    _format_attributions,
     _format_input_baseline,
     _tensorize_baseline,
     _validate_input,
 )
 from captum.attr._utils.gradient import _forward_layer_eval, _run_forward
-from captum.attr._utils.typing import BaselineType, Literal, TargetType
 
 from intermediate_gradients import IntermediateGradients
 
@@ -38,14 +45,15 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
             The model's forward function.
         layer: torch.nn.Module
             Layer for which intermediate gradients are computed.
-            Output will be (n_steps, forward_func_output, layer_output_dimensions). 
+            Output will be (n_steps, forward_func_output, layer_output_dimensions).
         device_ids: list(int)
-            List of Device IDs if running a DataParallel model.  
+            List of Device IDs if running a DataParallel model.
         """
         LayerAttribution.__init__(self, forward_func, layer, device_ids=device_ids)
         GradientAttribution.__init__(self, forward_func)
-        self.ig = IntermediateGradients(forward_func)
-        
+        self.device_ids = device_ids
+        self.interm_grad = IntermediateGradients(forward_func)
+
     def attribute(self,
                   inputs,
                   baselines,
@@ -124,10 +132,10 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
 
         # inputs -> these inputs are scaled
         def gradient_func(
-            forward_fn,
-            inputs,
-            target_ind=None,
-            additional_forward_args=None,
+                forward_fn,
+                inputs,
+                target_ind=None,
+                additional_forward_args=None,
         ):
             if self.device_ids is None:
                 scattered_inputs = (inputs,)
@@ -169,19 +177,17 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
                 grads = torch.autograd.grad(torch.unbind(output), inputs)
             return grads
 
-        self.ig.gradient_func = gradient_func
+        self.interm_grad.gradient_func = gradient_func
         all_inputs = (
             (inps + additional_forward_args)
             if additional_forward_args is not None
             else inps
         )
-        grads, step_sizes = self.ig.attribute(
+        grads, step_sizes = self.interm_grad.attribute(
             inputs_layer,
-            baselines=baselines_layer,,
+            baselines=baselines_layer,
             additional_forward_args=all_inputs,
             n_steps=n_steps,
             method=method,
-            internal_batch_size=internal_batch_size,
-            return_convergence_delta=False,
         )
         return grads, step_sizes

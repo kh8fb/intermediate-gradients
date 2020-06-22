@@ -1,26 +1,19 @@
-import torch
-from torch import Tensor
+"""
+Class for obtaining the gradients used to calculate Integrated Gradients.
+"""
 
-from captum.attr._utils.attribution import GradientAttribution, LayerAttribution
+import torch
 
 from captum.attr import IntegratedGradients
 from captum.attr._utils.approximation_methods import approximation_parameters
-from captum.attr._utils.attribution import GradientAttribution
 from captum.attr._utils.batching import _batched_operator
 from captum.attr._utils.common import (
     _expand_additional_forward_args,
-    _expand_target,
     _format_additional_forward_args,
     _format_input_baseline,
-    _is_tuple,
     _validate_input,
 )
-from captum.attr._utils.typing import (
-    BaselineType,
-    Literal,
-    TargetType,
-    TensorOrTupleOfTensorsGeneric,
-)
+
 
 class IntermediateGradients(IntegratedGradients):
     """
@@ -36,12 +29,12 @@ class IntermediateGradients(IntegratedGradients):
     gradients and a tensor of the step sizes used to calculate those gradients.
     """
     def attribute(
-        self,
-        inputs,
-        baselines,
-        additional_forward_args,
-        n_steps,
-        method,):
+            self,
+            inputs,
+            baselines,
+            additional_forward_args,
+            n_steps,
+            method,):
         """
         Get the intermediate gradients from the provided inputs and baselines.
 
@@ -53,7 +46,7 @@ class IntermediateGradients(IntegratedGradients):
         baselines: torch.tensor(num_ids), d
             Baselines to define the starting point for gradient calculations.
             Should be the same length as inputs.
-        additional_forward_args: 
+        additional_forward_args:
             If the forward function takes any additional arguments,
             they can be provided here.  If there are multiple forward args,
             a tuple of the forward arguments can be provided.
@@ -73,7 +66,6 @@ class IntermediateGradients(IntegratedGradients):
         step_sizes: torch.tensor(num_steps), dtype=float32
             Tensor of the step sizes used to calculate each of the gradients.
         """
-        is_inputs_tuple = _is_tuple(inputs)
 
         inputs, baselines = _format_input_baseline(inputs, baselines)
 
