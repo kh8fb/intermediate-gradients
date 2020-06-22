@@ -3,12 +3,14 @@ A quick example script using Distilbert to show intermediate-gradient's capabili
 """
 
 from captum.attr import LayerIntegratedGradients
-from intermediate_gradients.layer_intermediate_gradients import LayerIntermediateGradients
-from transformers import DistilBertTokenizer, DistilBertForQuestionAnswering, DistilBertConfig
+import click
+from transformers import DistilBertTokenizer, DistilBertForQuestionAnswering
 import torch
 
+from intermediate_gradients.layer_intermediate_gradients import LayerIntermediateGradients
 
-def predict(model, inputs):
+
+def predict(inputs, model):
     """
     Get the model's prediction based upon the combined question/text input tensor.
 
@@ -24,11 +26,11 @@ def predict(model, inputs):
         First element is the model's predicted starting position scores.
         Second element is the model's predicted ending position scores.
     """
-    prediction = model(inputs, attention_mask=attention_mask,)
+    prediction = model(inputs)
     return prediction
 
 
-def squad_pos_forward_func(model, inputs, position=0):
+def squad_pos_forward_func(inputs, model, position=0):
     """
     Get the value of the largest starting/ending position from the prediction.
 
@@ -48,7 +50,7 @@ def squad_pos_forward_func(model, inputs, position=0):
         If position is 0, this is the highest value for a starting position prediction
         If position is 1, this is the highest value for an ending position prediction.
     """
-    pred = predict(model, inputs)
+    pred = predict(inputs, model)
     pred = pred[position]
     max_pred = pred.max(1).values
     return max_pred
@@ -64,7 +66,8 @@ how to turn them into the attributions from integrated gradients.""")
     default=50,
 )
 def main(n_steps=50):
-    N_STEPS = int(n_steps)
+    #pylint: disable=missing-docstring, too-many-locals
+    n_steps = int(n_steps)
 
     # load the model and tokenizer
     model_path = 'distilbert-base-uncased-distilled-squad'
@@ -86,21 +89,22 @@ def main(n_steps=50):
     lig = LayerIntermediateGradients(squad_pos_forward_func, model.distilbert.embeddings)
     start_grads, start_step_sizes = lig.attribute(inputs=input_ids,
                                                   baselines=baseline_ids,
-                                                  additional_forward_args=(0))
+                                                  additional_forward_args=(model, 0),
+                                                  n_steps=n_steps)
     print("Shape of the returned gradients: ")
     print(start_grads.shape)
     print("Shape of the step sizes: ")
     print(start_step_sizes.shape)
 
     # now calculate attributions from the intermediate gradients
-    
+
     # multiply by the step sizes
-    scaled_grads = start_grads.view(N_STEPS, -1) * start_step_sizes
+    scaled_grads = start_grads.view(n_steps, -1) * start_step_sizes
     # reshape and sum along the num_steps dimension
-    scaled_grads = torch.sum(scaled_grads.reshape((N_STEPS, 1) + start_grads.shape[1:]), dim=0)
+    scaled_grads = torch.sum(scaled_grads.reshape((n_steps, 1) + start_grads.shape[1:]), dim=0)
     # pass forward the input and baseline ids for reference
     forward_input_ids = model.distilbert.embeddings.forward(input_ids)
-    forward_baseline_ids = model.embeddings.forward(baseline_ids)
+    forward_baseline_ids = model.distilbert.embeddings.forward(baseline_ids)
     # multiply the scaled gradients by the difference of inputs and baselines to obtain attributions
     attributions = scaled_grads * (forward_input_ids - forward_baseline_ids)
     print("Attributions calculated from intermediate gradients: ")
@@ -111,13 +115,13 @@ def main(n_steps=50):
     layer_integrated = LayerIntegratedGradients(squad_pos_forward_func, model.distilbert.embeddings)
     attrs_start = layer_integrated.attribute(inputs=input_ids,
                                              baselines=baseline_ids,
-                                             additional_forward_args=(0),
+                                             additional_forward_args=(model, 0),
+                                             n_steps=n_steps,
                                              return_convergence_delta=False)
     print("Attributions from layer integrated gradients: ")
     print(attrs_start.shape)
     print(attrs_start)
-    
 
-if __name__=="__main__":
-    #pylint: disable=no-parameters
+
+if __name__ == "__main__":
     main()
