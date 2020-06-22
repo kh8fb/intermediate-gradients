@@ -18,7 +18,7 @@ from captum.attr._utils.common import (
 )
 from captum.attr._utils.gradient import _forward_layer_eval, _run_forward
 
-from intermediate_gradients import IntermediateGradients
+from .intermediate_gradients import IntermediateGradients
 
 class LayerIntermediateGradients(LayerIntegratedGradients):
     """
