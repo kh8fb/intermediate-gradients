@@ -21,14 +21,14 @@ First calculate the gradients:
 	# Create an instance of Layer Intermediate Gradients
 	>>> lig = LayerIntermediateGradients(forward_func, model.embeddings)
 	# Pass the inputs and baselines through the attribute function to obtain the gradients
-	>>> grads, start_step_sizes = lig.attribute(inputs=input_ids, baselines=baseline_ids, additional_forward_args=(None, 0), n_steps=N_STEPS)
-	>>> intermediate_start.shape, start_step_sizes.shape
+	>>> start_grads, start_step_sizes = lig.attribute(inputs=input_ids, baselines=baseline_ids, additional_forward_args=(None, 0), n_steps=N_STEPS)
+	>>> start_grads.shape, start_step_sizes.shape
 	torch.Size([50, 26, 768]), torch.Size([50, 1])
 
 You can then easily calculate the attributions from these gradients and step sizes at a later point.
 
 	# Multiply by the step sizes
-	>>> scaled_grads = (intermediate_start.view(N_STEPS, -1) * start_step_sizes)
+	>>> scaled_grads = (start_grads.view(N_STEPS, -1) * start_step_sizes)
 	# Reshape and sum along the num_steps dimension
 	>>> scaled_grads = torch.sum(scaled_grads.reshape((N_STEPS, 1) + intermediate_start.shape[1:]), dim=0)
 	# Pass forward the input and baseline ids for reference
