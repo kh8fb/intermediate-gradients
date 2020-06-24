@@ -5,10 +5,10 @@ Intermediate-gradients is a modification of the Integrated Gradients algorithm. 
 First, create an Anaconda environment:
 
 		conda create -n intermediate-gradients python=3.8
-Then activate the environment and install the requirements:
+Then activate the environment,cd into the directory, and install the requirements:
 
 		conda activate intermediate-gradients
-		pip install -r requirements.txt
+		pip install -e .
 
 ### IntermediateGradients
 A class for calculating the gradients and step sizes.  The number of gradients calculated is directly related to the n_steps parameter
