@@ -58,6 +58,7 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
                   inputs,
                   baselines,
                   additional_forward_args,
+                  target=None,
                   n_steps=50,
                   method="gausslegendre",
                   attribute_to_layer_input=False):
@@ -76,6 +77,11 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
             If the forward function takes any additional arguments,
             they can be provided here.  If there are multiple forward args,
             a tuple of the forward arguments can be provided.
+        target: int, tuple, tensor or list
+            Output indices for which gradients are computed (for classification
+            cases, this is the target class). For 2D batched inputs, the targets
+            can be a singl einteger which is applied to all input examples or a
+            1D tensor with length matching the number of examples in inputs (dim 0).
         n_steps: int
             The number of steps used by the approximation method. Default: 50.
             The article suggests between 20 and 300 steps are enough to
@@ -186,6 +192,7 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
         grads, step_sizes = self.interm_grad.attribute(
             inputs_layer,
             baselines=baselines_layer,
+            target=target,
             additional_forward_args=all_inputs,
             n_steps=n_steps,
             method=method,

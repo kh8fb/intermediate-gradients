@@ -9,6 +9,7 @@ from captum.attr._utils.approximation_methods import approximation_parameters
 from captum.attr._utils.batching import _batched_operator
 from captum.attr._utils.common import (
     _expand_additional_forward_args,
+    _expand_target,
     _format_additional_forward_args,
     _format_input_baseline,
     _validate_input,
@@ -32,6 +33,7 @@ class IntermediateGradients(IntegratedGradients):
             self,
             inputs,
             baselines,
+            target,
             additional_forward_args,
             n_steps,
             method,):
@@ -46,6 +48,11 @@ class IntermediateGradients(IntegratedGradients):
         baselines: torch.tensor(num_ids), d
             Baselines to define the starting point for gradient calculations.
             Should be the same length as inputs.
+        target: int, tuple, tensor or list
+            Output indices for which gradients are computed (for classification
+            cases, this is the target class). For 2D batched inputs, the targets
+            can be a singl einteger which is applied to all input examples or a
+            1D tensor with length matching the number of examples in inputs (dim 0).
         additional_forward_args:
             If the forward function takes any additional arguments,
             they can be provided here.  If there are multiple forward args,
@@ -97,6 +104,8 @@ class IntermediateGradients(IntegratedGradients):
             if additional_forward_args is not None
             else None
         )
+        expanded_target = _expand_target(target, n_steps)
+
 
         # grads: dim -> (bsz * #steps x inputs[0].shape[1:], ...)
         grads = _batched_operator(
@@ -104,6 +113,7 @@ class IntermediateGradients(IntegratedGradients):
             scaled_features_tpl,
             input_additional_args,
             forward_fn=self.forward_func,
+            target_ind=expanded_target,
         )
         step_sizes = torch.tensor(step_sizes).view(n_steps, 1)
         return grads[0], step_sizes
