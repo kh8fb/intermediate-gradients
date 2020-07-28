@@ -67,10 +67,10 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
 
         Parameters
         ----------
-        inputs: tensor
+        inputs: torch.tensor(num_ids) or torch.tensor([batch_size, num_ids])
             Input for which layered intermediate gradients are computed.
             This is the tensor that would be passed to the forward_func.
-        baselines: tensor
+        baselines: torch.tensor(num_ids) or torch.tensor([batch_size, num_ids])
             Baselines to define the starting point for gradient calculations.
             Should be the same length as inputs.
         additional_forward_args: any, tuple(any), or None
@@ -99,7 +99,7 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
 
         Returns
         -------
-        grads: torch.tensor(num_steps, num_embeddings, num_ids), dtype=float32
+        grads: torch.tensor(num_steps*batch_size, num_embeddings, num_ids), dtype=float32
             Tensor of the gradients for each input.
             Multiplying this value by step_sizes, summing along the
             num_steps dimension, and then multiplying by the (inputs - baseline)
@@ -107,6 +107,8 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
             Gradients.
         step_sizes: torch.tensor(num_steps), dtype=float32
             Tensor of the step sizes used to calculate each of the gradients.
+        intermediates: torch.tensor(num_steps*batch_size, num_embeddings, num_ids), dtype=float32
+            Tensor of the intermediate x values used to calculate each of the gradients.
         """
         inps, baselines = _format_input_baseline(inputs, baselines)
         _validate_input(inps, baselines, n_steps, method)
@@ -189,7 +191,7 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
             if additional_forward_args is not None
             else inps
         )
-        grads, step_sizes = self.interm_grad.attribute(
+        grads, step_sizes, intermediates = self.interm_grad.attribute(
             inputs_layer,
             baselines=baselines_layer,
             target=target,
@@ -197,4 +199,4 @@ class LayerIntermediateGradients(LayerIntegratedGradients):
             n_steps=n_steps,
             method=method,
         )
-        return grads, step_sizes
+        return grads, step_sizes, intermediates

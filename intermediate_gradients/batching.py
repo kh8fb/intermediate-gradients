@@ -30,7 +30,7 @@ def _tuple_splice_range(
 
 def _reduce_list(
     val_list,
-    red_func,
+    red_func=torch.cat,
 ):
     """
     Applies reduction function to given list. If each element in the list is
@@ -62,7 +62,7 @@ def _reduce_list(
 
 def _sort_key_list(
         keys,
-        device_ids,
+        device_ids=None,
 ):
     """
     Sorts list of torch devices (keys) by given index list, device_ids. If keys
@@ -93,9 +93,9 @@ def _sort_key_list(
 
 def _batched_generator(
     inputs,
-    additional_forward_args,
-    target_ind,
-    internal_batch_size,
+    additional_forward_args=None,
+    target_ind=None,
+    internal_batch_size=None,
 ):
     """
     Returns a generator which returns corresponding chunks of size internal_batch_size
@@ -130,9 +130,9 @@ def _batched_generator(
 def _batched_operator(
         operator,
         inputs,
-        additional_forward_args,
-        target_ind,
-        internal_batch_size,
+        additional_forward_args=None,
+        target_ind=None,
+        internal_batch_size=None,
         **kwargs,
 ):
     """
@@ -140,11 +140,9 @@ def _batched_operator(
     to inputs and additional forward arguments, and returning the concatenation
     of the results of each batch.
     """
-    created_inputs = []
-    for input, additional, target in _batched_generator(
-            inputs, additional_forward_args, target_ind, internal_batch_size
-            ):
-        created_inputs.append(input)
+    intermediate_inputs = [input[0] for input, additional, target in _batched_generator(
+        inputs, additional_forward_args, target_ind, internal_batch_size
+    )]
     all_outputs = [
         operator(
             inputs=input,
@@ -156,4 +154,4 @@ def _batched_operator(
             inputs, additional_forward_args, target_ind, internal_batch_size
         )
     ]
-    return _reduce_list(all_outputs), created_inputs
+    return _reduce_list(all_outputs), _reduce_list(intermediate_inputs)

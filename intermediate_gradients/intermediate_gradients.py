@@ -42,10 +42,10 @@ class IntermediateGradients(IntegratedGradients):
 
         Parameters
         ----------
-        inputs: torch.tensor(num_ids), dtye
+        inputs: torch.tensor(num_ids) or torch.tensor([batch_size, num_ids])
             Input for which intermediate gradients are computed.
             This is the tensor that would be passed to the forward_func.
-        baselines: torch.tensor(num_ids), d
+        baselines: torch.tensor(num_ids) or torch.tensor([batch_size, num_ids])
             Baselines to define the starting point for gradient calculations.
             Should be the same length as inputs.
         target: int, tuple, tensor or list
@@ -68,10 +68,12 @@ class IntermediateGradients(IntegratedGradients):
 
         Returns
         -------
-        grads: torch.tensor(num_steps, num_ids, num_embeddings), dtype=float32
+        grads: torch.tensor(num_steps*batch_size, num_ids, num_embeddings), dtype=float32
             Tensor of the gradients used in approximating the integrated gradients.
         step_sizes: torch.tensor(num_steps), dtype=float32
             Tensor of the step sizes used to calculate each of the gradients.
+        intermediates: torch.tensor(num_steps*batch_size, num_ids, num_embeddings), dtype=float32
+            Tensor of the intermediate x values used to calculate each of the gradients.
         """
 
         inputs, baselines = _format_input_baseline(inputs, baselines)
@@ -108,7 +110,7 @@ class IntermediateGradients(IntegratedGradients):
 
 
         # grads: dim -> (bsz * #steps x inputs[0].shape[1:], ...)
-        grads, all_inputs = _batched_operator(
+        grads, intermediates = _batched_operator(
             self.gradient_func,
             scaled_features_tpl,
             input_additional_args,
@@ -116,4 +118,4 @@ class IntermediateGradients(IntegratedGradients):
             target_ind=expanded_target,
         )
         step_sizes = torch.tensor(step_sizes).view(n_steps, 1)
-        return grads[0], all_inputs, # step_sizes
+        return grads[0], step_sizes, intermediates

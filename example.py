@@ -87,7 +87,7 @@ def main(n_steps=50):
 
     # create an instance of layer intermediate gradients based upon the embedding layer
     lig = LayerIntermediateGradients(squad_pos_forward_func, model.distilbert.embeddings)
-    start_grads, start_step_sizes = lig.attribute(inputs=input_ids,
+    start_grads, start_step_sizes, intermediates = lig.attribute(inputs=input_ids,
                                                   baselines=baseline_ids,
                                                   additional_forward_args=(model, 0),
                                                   n_steps=n_steps)
@@ -121,6 +121,9 @@ def main(n_steps=50):
     print("Attributions from layer integrated gradients: ")
     print(attrs_start.shape)
     print(attrs_start)
+
+    print("intermediate values shape: ", intermediates.shape)
+    print("intermediate values: ", intermediates)
 
 
 if __name__ == "__main__":
