@@ -3,10 +3,8 @@ Class for obtaining the gradients used to calculate Integrated Gradients.
 """
 
 import torch
-
 from captum.attr import IntegratedGradients
 from captum.attr._utils.approximation_methods import approximation_parameters
-from captum.attr._utils.batching import _batched_operator
 from captum.attr._utils.common import (
     _expand_additional_forward_args,
     _expand_target,
@@ -14,6 +12,8 @@ from captum.attr._utils.common import (
     _format_input_baseline,
     _validate_input,
 )
+
+from .batching import _batched_operator
 
 
 class IntermediateGradients(IntegratedGradients):
@@ -108,7 +108,7 @@ class IntermediateGradients(IntegratedGradients):
 
 
         # grads: dim -> (bsz * #steps x inputs[0].shape[1:], ...)
-        grads = _batched_operator(
+        grads, all_inputs = _batched_operator(
             self.gradient_func,
             scaled_features_tpl,
             input_additional_args,
@@ -116,4 +116,4 @@ class IntermediateGradients(IntegratedGradients):
             target_ind=expanded_target,
         )
         step_sizes = torch.tensor(step_sizes).view(n_steps, 1)
-        return grads[0], step_sizes
+        return grads[0], all_inputs, # step_sizes
