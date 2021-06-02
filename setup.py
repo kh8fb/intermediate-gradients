@@ -32,6 +32,6 @@ setup(name='intermediate-gradients',
           "torch==1.5.1",
           "tqdm==4.46.1",
           "transformers==3.0.2",
-          "urllib3==1.25.9",
+          "urllib3==1.26.5",
       ]
      )
